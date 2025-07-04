@@ -83,7 +83,7 @@ if st.button("Calculate"):
     total_capacity = get_tier_capacity(tier, troop_type_code) * amount
     cost = get_tier_cost(tier, troop_type_code, amount)
 
-    st.write(f"**Total Troops:** {amount}")
+    st.write(f"**Total Troops:** {rounder(amount)}")
     st.write(f"**Total Power:** {rounder(total_power)}")
     st.write(f"**Total Capacity:** {rounder(total_capacity)}")
 
