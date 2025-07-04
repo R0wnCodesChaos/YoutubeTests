@@ -1,6 +1,5 @@
 import streamlit as st
 
-# Your data dictionaries here (tiers_power, tiers_capacity_A_I, etc.)
 tiers_power = {"1": 4, "2": 6, "3": 8, "4": 12, "5": 15, "6": 20, "7": 25, "8": 33, "9": 45, "10": 60, "11": 80, "12": 100}
 tiers_capacity_A_I = {"1": 10, "2": 12, "3": 14, "4": 16, "5": 18, "6": 18, "7": 20, "8": 22, "9": 24, "10": 26, "11": 28, "12": 30}
 tiers_capacity_C = {"1": 8, "2": 8, "3": 10, "4": 12, "5": 12, "6": 14, "7": 14, "8": 16, "9": 16, "10": 18, "11": 20, "12": 22}
@@ -73,20 +72,18 @@ def get_tier_cost(tier, troop_type, amount):
 
 st.title("PaCMath Troop Calculator")
 
-# Inputs
 tier = st.selectbox("Select troop tier", options=[str(i) for i in range(1, 13)])
 troop_type = st.selectbox("Select troop type", options=["A (Archers)", "I (Infantry)", "C (Calvary)", "V (Vehicle)"])
 amount = st.number_input("Enter the amount of troops", min_value=1, step=1)
 
-# Convert troop_type to just the letter code
 troop_type_code = troop_type[0]
 
 if st.button("Calculate"):
     total_power = get_tier_power(tier) * amount
     total_capacity = get_tier_capacity(tier, troop_type_code) * amount
-
     cost = get_tier_cost(tier, troop_type_code, amount)
 
+    st.write(f"**Total Troops:** {amount}")
     st.write(f"**Total Power:** {rounder(total_power)}")
     st.write(f"**Total Capacity:** {rounder(total_capacity)}")
 
@@ -96,4 +93,3 @@ if st.button("Calculate"):
         st.write("**Total Cost:**")
         for resource, value in cost.items():
             st.write(f"- {resource}: {value}")
-# 99 lines long...
