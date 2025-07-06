@@ -23,6 +23,8 @@ cost_I = {"food": {"1": 54, "2": 61, "3": 108, "4": 121, "5": 199, "6": 223, "7"
           , "stone": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 4, "6": 6, "7": 11, "8": 16, "9": 30, "10": 30, "11": 0, "12": 0}
           , "iron": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 1, "9": 4, "10": 5, "11": 0, "12": 0}}
 
+time_to_train = {"1": 6, "2": 7, "3": 10, "4": 13, "5": 17, "6": 22, "7": 29, "8": 38, "9": 50, "10": 100, "11": 0} # Time to train troops in seconds
+
 def rounder(n): # Function to round numbers for better readability
     if n >= 1000000000:
         return str(round(n / 1000000000, 2)) + "b"
@@ -109,11 +111,134 @@ def do_math(tier, type, amount): # Function to calculate total power and capacit
     
     return total_power, total_capacity
 
+def check_if_digit(speedup_type):
+    while True:
+        value = input(f"How many {speedup_type} speed ups do you have? ")
+        if value.isdigit():
+            print(f'You have {value} "{speedup_type} speed ups".')
+            return int(value)
+        else:
+            print("Invalid input. Please enter a valid number.")
+
+def get_max_troop_training():
+    while True:
+        troop_tier = input("Enter the troop tier (1-12): ")
+        if troop_tier not in time_to_train:
+            print("Invalid tier. Please enter a number between 1 and 11.")
+            continue
+        else:
+            break
+    while True: # Loop to ensure valid troop type input
+        troop_type = input("Enter the troop type (A for Archers, I for Infantry, C for Calvery, V for Vehicle): ").upper()
+        if troop_type in ["A", "I", "C", "V"]:
+            break
+        else:
+            print("Invalid troop type. Please enter A, I, C, or V.")
+            continue
+
+    one_m = check_if_digit("1 Minute")
+    five_m = check_if_digit("5 Minute")
+    ten_m = check_if_digit("10 Minute")
+    fifteen_m = check_if_digit("15 Minute")
+    thirty_m = check_if_digit("30 Minute")
+    sixty_m = check_if_digit("1 Hour")
+    three_h = check_if_digit("3 Hour")
+    eight_h = check_if_digit("8 Hour")
+    fifteen_h = check_if_digit("15 Hour")
+    twenty_four_h = check_if_digit("24 Hour")
+    three_d = check_if_digit("3 Day")
+    seven_d = check_if_digit("7 Day")
+
+    total_speedup_time = (
+        one_m * 60 +
+        five_m * 300 +
+        ten_m * 600 +
+        fifteen_m * 900 +
+        thirty_m * 1800 +
+        sixty_m * 3600 +
+        three_h * 10800 +
+        eight_h * 28800 +
+        fifteen_h * 54000 +
+        twenty_four_h * 86400 +
+        three_d * 259200 +
+        seven_d * 604800
+    )
+
+    print(f"Total speedup time in minutes: {round(total_speedup_time / 60)}")
+    print(f"Total speedup time in hours: {round(total_speedup_time / 3600)}")
+    print(f"Total speedup time in days: {round(total_speedup_time / 86400)}")
+    resource_amount_food = input("Enter the amount of food you have in total: ")
+    while not resource_amount_food.isdigit():  # Ensure the amount is a digit
+        print("Invalid amount. Please enter a valid number.")
+        resource_amount_food = input("Enter the amount of food you have in total: ")
+    resource_amount_food = int(resource_amount_food)
+    resource_amount_wood = input("Enter the amount of wood you have in total: ")
+    while not resource_amount_wood.isdigit():  # Ensure the amount is a digit
+        print("Invalid amount. Please enter a valid number.")
+        resource_amount_wood = input("Enter the amount of wood you have in total: ")
+    resource_amount_wood = int(resource_amount_wood)
+    resource_amount_stone = input("Enter the amount of stone you have in total: ")
+    while not resource_amount_stone.isdigit():  # Ensure the amount is a digit
+        print("Invalid amount. Please enter a valid number.")
+        resource_amount_stone = input("Enter the amount of stone you have in total: ")
+    resource_amount_stone = int(resource_amount_stone)
+    resource_amount_iron = input("Enter the amount of iron you have in total: ")
+    while not resource_amount_iron.isdigit():  # Ensure the amount is a digit
+        print("Invalid amount. Please enter a valid number.")
+        resource_amount_iron = input("Enter the amount of iron you have in total: ")
+    resource_amount_iron = int(resource_amount_iron)
+
+    if troop_type == "A":
+        cost_food = cost_A["food"][troop_tier]
+        cost_wood = cost_A["wood"][troop_tier]
+        cost_stone = cost_A["stone"][troop_tier]
+        cost_iron = cost_A["iron"][troop_tier]
+    elif troop_type == "I":
+        cost_food = cost_I["food"][troop_tier]
+        cost_wood = cost_I["wood"][troop_tier]
+        cost_stone = cost_I["stone"][troop_tier]
+        cost_iron = cost_I["iron"][troop_tier]
+    elif troop_type == "C":
+        cost_food = cost_C["food"][troop_tier]
+        cost_wood = cost_C["wood"][troop_tier]
+        cost_stone = cost_C["stone"][troop_tier]
+        cost_iron = cost_C["iron"][troop_tier]
+    elif troop_type == "V":
+        cost_food = cost_V["food"][troop_tier]
+        cost_wood = cost_V["wood"][troop_tier]
+        cost_stone = cost_V["stone"][troop_tier]
+        cost_iron = cost_V["iron"][troop_tier]
+  
+    food_trainable = resource_amount_food // cost_food
+    wood_trainable = resource_amount_wood // cost_wood
+    stone_trainable = resource_amount_stone // cost_stone
+    iron_trainable = resource_amount_iron // cost_iron
+    train_time = time_to_train[troop_tier]  # Get the training time for the specified tier
+    time_trainable = total_speedup_time // train_time  # Calculate the total trainable time based on speedups
+    max_trainable = round(min(food_trainable, wood_trainable, stone_trainable, iron_trainable, time_trainable))  # Get the minimum of all trainable resources and time
+    print(f"Based on your resources and speedups, you can train a maximum of {max_trainable} troops of tier {troop_tier}.")
+
+    trainable_factors = {
+    "food": food_trainable,
+    "wood": wood_trainable,
+    "stone": stone_trainable,
+    "iron": iron_trainable,
+    "speedups": time_trainable
+    }
+    
+    for factor, value in trainable_factors.items():
+        if round(value) == max_trainable:
+            limiting_factor = factor
+            break
+    print(f"The thing stoping you from training more troops is {limiting_factor}.")
+
+
+
 def main(): # Main function to run the program
     print("Welcome to the PaCMath program!")
     print("This program will help you calculate the power and capacity of your troops based on their tier and type.")
     while True:
-        q1 = input("what would you like to do: 1 = enter info, 2 = Calculate, 3 = Quit: ").upper()
+        q1 = input("what would you like to do: 1 = Enter Info, 2 = Calculate, 3 = Calculate Trainable Troops, 4 = Quit: ").upper()
         if q1 == "1":
             tier, type, amount = get_info()
             print(f"You have entered: Tier {tier}, Type {type}, Amount {rounder(amount)}")
@@ -128,6 +253,9 @@ def main(): # Main function to run the program
                 print(f"Total Cost:\n{cost}")
             continue
         elif q1 == "3":
+            get_max_troop_training()
+            continue
+        elif q1 == "4":
             print("Thank you for using the PaCMath program. Goodbye!")
             break
         else:
