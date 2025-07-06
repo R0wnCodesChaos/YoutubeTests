@@ -42,54 +42,73 @@ def rounder(n):
 
 def get_tier_power(tier):
     """Function to get the power of a troop based on its tier"""
-    return tiers_power[tier]
+    return tiers_power[str(tier)]
 
 def get_tier_capacity(tier, troop_type):
     """Function to get the capacity of a troop based on its tier and type"""
     if troop_type in ["A", "I"]:
-        return tiers_capacity_A_I[tier]
+        return tiers_capacity_A_I[str(tier)]
     elif troop_type == "C":
-        return tiers_capacity_C[tier]
+        return tiers_capacity_C[str(tier)]
     elif troop_type == "V":
-        return tiers_capacity_V[tier]
+        return tiers_capacity_V[str(tier)]
 
 def get_tier_cost(tier, troop_type, amount):
     """Function to get the cost of a troop based on its tier and type"""
-    if tier == "12":
+    if tier == 12:
         return "Tier 12 troop costs are not available yet."
     
-    cost_dict = {"A": cost_A, "I": cost_I, "C": cost_C, "V": cost_V}
+    cost_dict = {
+        "A": cost_A,
+        "I": cost_I,
+        "C": cost_C,
+        "V": cost_V
+    }
     
-    if troop_type in cost_dict:
-        costs = cost_dict[troop_type]
-        cost_food = costs["food"][tier] * amount
-        cost_wood = costs["wood"][tier] * amount
-        cost_stone = costs["stone"][tier] * amount
-        cost_iron = costs["iron"][tier] * amount
-        
-        return {
-            "food": cost_food,
-            "wood": cost_wood,
-            "stone": cost_stone,
-            "iron": cost_iron
-        }
+    costs = cost_dict[troop_type]
+    tier_str = str(tier)
+    
+    cost_food = costs["food"][tier_str] * amount
+    cost_wood = costs["wood"][tier_str] * amount
+    cost_stone = costs["stone"][tier_str] * amount
+    cost_iron = costs["iron"][tier_str] * amount
+    
+    return {
+        "food": cost_food,
+        "wood": cost_wood,
+        "stone": cost_stone,
+        "iron": cost_iron
+    }
 
 def calculate_max_trainable(tier, troop_type, resources, speedups):
     """Calculate maximum trainable troops based on resources and speedups"""
-    if tier == "12" or tier == "11":
-        return "Training calculations not available for tier 11 and 12."
+    if tier == 12 or (troop_type == "I" and tier > 10):
+        return 0, "Invalid tier for this troop type"
     
-    cost_dict = {"A": cost_A, "I": cost_I, "C": cost_C, "V": cost_V}
+    # Get costs for one troop
+    cost_dict = {
+        "A": cost_A,
+        "I": cost_I,
+        "C": cost_C,
+        "V": cost_V
+    }
+    
     costs = cost_dict[troop_type]
+    tier_str = str(tier)
     
-    # Calculate trainable based on each resource
-    food_trainable = resources["food"] // costs["food"][tier] if costs["food"][tier] > 0 else float('inf')
-    wood_trainable = resources["wood"] // costs["wood"][tier] if costs["wood"][tier] > 0 else float('inf')
-    stone_trainable = resources["stone"] // costs["stone"][tier] if costs["stone"][tier] > 0 else float('inf')
-    iron_trainable = resources["iron"] // costs["iron"][tier] if costs["iron"][tier] > 0 else float('inf')
+    cost_food = costs["food"][tier_str]
+    cost_wood = costs["wood"][tier_str]
+    cost_stone = costs["stone"][tier_str]
+    cost_iron = costs["iron"][tier_str]
     
-    # Calculate speedup trainable
-    train_time = time_to_train[tier]
+    # Calculate trainable by each resource
+    food_trainable = resources["food"] // cost_food if cost_food > 0 else float('inf')
+    wood_trainable = resources["wood"] // cost_wood if cost_wood > 0 else float('inf')
+    stone_trainable = resources["stone"] // cost_stone if cost_stone > 0 else float('inf')
+    iron_trainable = resources["iron"] // cost_iron if cost_iron > 0 else float('inf')
+    
+    # Calculate trainable by time
+    train_time = time_to_train[tier_str]
     time_trainable = speedups // train_time if train_time > 0 else float('inf')
     
     # Find limiting factor
@@ -102,189 +121,175 @@ def calculate_max_trainable(tier, troop_type, resources, speedups):
     }
     
     max_trainable = min(trainable_factors.values())
-    limiting_factor = min(trainable_factors, key=trainable_factors.get)
     
-    return int(max_trainable), limiting_factor, trainable_factors
+    # Find what's limiting
+    limiting_factor = [k for k, v in trainable_factors.items() if v == max_trainable][0]
+    
+    return int(max_trainable), limiting_factor
 
 # Streamlit App
 st.set_page_config(page_title="PaCMath - Troop Calculator", page_icon="⚔️", layout="wide")
 
-st.title("⚔️ PaCMath - Troop Power & Capacity Calculator")
-st.markdown("Calculate troop power, capacity, costs, and maximum trainable troops for your army!")
+st.title("⚔️ PaCMath - Troop Calculator")
+st.markdown("Calculate power, capacity, and training costs for your troops!")
 
 # Sidebar for navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Select Function:", ["Troop Calculator", "Max Trainable Troops", "Troop Comparison"])
+st.sidebar.header("Navigation")
+page = st.sidebar.radio("Choose a function:", ["Power & Capacity Calculator", "Training Cost Calculator", "Maximum Trainable Troops"])
 
-if page == "Troop Calculator":
-    st.header("🏹 Troop Calculator")
+if page == "Power & Capacity Calculator":
+    st.header("📊 Power & Capacity Calculator")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Troop Information")
-        tier = st.selectbox("Select Tier:", options=list(range(1, 13)), format_func=lambda x: f"Tier {x}")
-        troop_type = st.selectbox("Select Troop Type:", 
-                                  options=["A", "I", "C", "V"], 
-                                  format_func=lambda x: {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicles"}[x])
-        amount = st.number_input("Number of Troops:", min_value=1, value=1, step=1)
+        tier = st.selectbox("Select Tier:", options=list(range(1, 13)), index=0)
+        troop_type = st.selectbox("Select Troop Type:", options=["A", "I", "C", "V"], 
+                                 format_func=lambda x: {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicle"}[x])
+        amount = st.number_input("Enter Amount of Troops:", min_value=1, value=1, step=1)
     
     with col2:
-        st.subheader("Results")
-        if st.button("Calculate", type="primary"):
-            tier_str = str(tier)
+        if st.button("Calculate Power & Capacity", type="primary"):
+            power = get_tier_power(tier)
+            capacity = get_tier_capacity(tier, troop_type)
             
-            # Calculate power and capacity
-            power = get_tier_power(tier_str)
-            capacity = get_tier_capacity(tier_str, troop_type)
             total_power = power * amount
             total_capacity = capacity * amount
             
-            # Display results
-            st.metric("Total Power", rounder(total_power))
-            st.metric("Total Capacity", rounder(total_capacity))
+            st.success("✅ Calculation Complete!")
             
-            # Calculate and display costs
-            if tier != 12:
-                costs = get_tier_cost(tier_str, troop_type, amount)
-                st.subheader("Resource Costs")
-                cost_cols = st.columns(4)
-                with cost_cols[0]:
-                    st.metric("Food", rounder(costs["food"]))
-                with cost_cols[1]:
-                    st.metric("Wood", rounder(costs["wood"]))
-                with cost_cols[2]:
-                    st.metric("Stone", rounder(costs["stone"]))
-                with cost_cols[3]:
-                    st.metric("Iron", rounder(costs["iron"]))
-            else:
-                st.warning("Tier 12 troop costs are not available yet.")
+            col3, col4 = st.columns(2)
+            with col3:
+                st.metric("Total Power", rounder(total_power))
+            with col4:
+                st.metric("Total Capacity", rounder(total_capacity))
+            
+            # Display per-unit stats
+            st.subheader("Per-Unit Stats:")
+            stats_df = pd.DataFrame({
+                "Metric": ["Power per Unit", "Capacity per Unit"],
+                "Value": [power, capacity]
+            })
+            st.dataframe(stats_df, use_container_width=True)
 
-elif page == "Max Trainable Troops":
+elif page == "Training Cost Calculator":
+    st.header("💰 Training Cost Calculator")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        tier = st.selectbox("Select Tier:", options=list(range(1, 13)), index=0)
+        troop_type = st.selectbox("Select Troop Type:", options=["A", "I", "C", "V"], 
+                                 format_func=lambda x: {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicle"}[x])
+        amount = st.number_input("Enter Amount of Troops:", min_value=1, value=1, step=1)
+    
+    with col2:
+        if st.button("Calculate Training Cost", type="primary"):
+            if tier == 12:
+                st.warning("⚠️ Tier 12 troop costs are not available yet.")
+            else:
+                costs = get_tier_cost(tier, troop_type, amount)
+                
+                st.success("✅ Cost Calculation Complete!")
+                
+                # Display costs in a nice format
+                col3, col4, col5, col6 = st.columns(4)
+                with col3:
+                    st.metric("🥖 Food", rounder(costs["food"]))
+                with col4:
+                    st.metric("🌲 Wood", rounder(costs["wood"]))
+                with col5:
+                    st.metric("🗿 Stone", rounder(costs["stone"]))
+                with col6:
+                    st.metric("⚒️ Iron", rounder(costs["iron"]))
+                
+                # Display cost breakdown table
+                st.subheader("Cost Breakdown:")
+                cost_df = pd.DataFrame({
+                    "Resource": ["Food", "Wood", "Stone", "Iron"],
+                    "Cost per Unit": [costs["food"]//amount, costs["wood"]//amount, costs["stone"]//amount, costs["iron"]//amount],
+                    "Total Cost": [costs["food"], costs["wood"], costs["stone"], costs["iron"]]
+                })
+                st.dataframe(cost_df, use_container_width=True)
+
+elif page == "Maximum Trainable Troops":
     st.header("🎯 Maximum Trainable Troops Calculator")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Troop Information")
-        tier = st.selectbox("Select Tier:", options=list(range(1, 12)), format_func=lambda x: f"Tier {x}")
-        troop_type = st.selectbox("Select Troop Type:", 
-                                  options=["A", "I", "C", "V"], 
-                                  format_func=lambda x: {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicles"}[x])
+        st.subheader("Troop Selection")
+        tier = st.selectbox("Select Tier:", options=list(range(1, 12)), index=0)
+        troop_type = st.selectbox("Select Troop Type:", options=["A", "I", "C", "V"], 
+                                 format_func=lambda x: {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicle"}[x])
         
-        st.subheader("Your Resources")
+        st.subheader("Current Resources")
         food = st.number_input("Food:", min_value=0, value=0, step=1000)
         wood = st.number_input("Wood:", min_value=0, value=0, step=1000)
         stone = st.number_input("Stone:", min_value=0, value=0, step=100)
         iron = st.number_input("Iron:", min_value=0, value=0, step=100)
     
     with col2:
-        st.subheader("Speed-ups (in seconds)")
-        speedups = 0
-        speedups += st.number_input("1 Minute (60s):", min_value=0, value=0) * 60
-        speedups += st.number_input("5 Minutes (300s):", min_value=0, value=0) * 300
-        speedups += st.number_input("10 Minutes (600s):", min_value=0, value=0) * 600
-        speedups += st.number_input("15 Minutes (900s):", min_value=0, value=0) * 900
-        speedups += st.number_input("30 Minutes (1800s):", min_value=0, value=0) * 1800
-        speedups += st.number_input("1 Hour (3600s):", min_value=0, value=0) * 3600
-        speedups += st.number_input("3 Hours (10800s):", min_value=0, value=0) * 10800
-        speedups += st.number_input("8 Hours (28800s):", min_value=0, value=0) * 28800
-        speedups += st.number_input("15 Hours (54000s):", min_value=0, value=0) * 54000
-        speedups += st.number_input("24 Hours (86400s):", min_value=0, value=0) * 86400
-        speedups += st.number_input("3 Days (259200s):", min_value=0, value=0) * 259200
-        speedups += st.number_input("7 Days (604800s):", min_value=0, value=0) * 604800
+        st.subheader("Speed-up Items")
+        one_m = st.number_input("1 Minute Speed-ups:", min_value=0, value=0)
+        five_m = st.number_input("5 Minute Speed-ups:", min_value=0, value=0)
+        ten_m = st.number_input("10 Minute Speed-ups:", min_value=0, value=0)
+        fifteen_m = st.number_input("15 Minute Speed-ups:", min_value=0, value=0)
+        thirty_m = st.number_input("30 Minute Speed-ups:", min_value=0, value=0)
+        sixty_m = st.number_input("1 Hour Speed-ups:", min_value=0, value=0)
+        three_h = st.number_input("3 Hour Speed-ups:", min_value=0, value=0)
+        eight_h = st.number_input("8 Hour Speed-ups:", min_value=0, value=0)
+        fifteen_h = st.number_input("15 Hour Speed-ups:", min_value=0, value=0)
+        twenty_four_h = st.number_input("24 Hour Speed-ups:", min_value=0, value=0)
+        three_d = st.number_input("3 Day Speed-ups:", min_value=0, value=0)
+        seven_d = st.number_input("7 Day Speed-ups:", min_value=0, value=0)
+    
+    if st.button("Calculate Maximum Trainable Troops", type="primary"):
+        # Calculate total speedup time in seconds
+        total_speedup_time = (
+            one_m * 60 +
+            five_m * 300 +
+            ten_m * 600 +
+            fifteen_m * 900 +
+            thirty_m * 1800 +
+            sixty_m * 3600 +
+            three_h * 10800 +
+            eight_h * 28800 +
+            fifteen_h * 54000 +
+            twenty_four_h * 86400 +
+            three_d * 259200 +
+            seven_d * 604800
+        )
         
-        st.metric("Total Speedup Time", f"{speedups:,} seconds")
-        st.caption(f"≈ {speedups/3600:.1f} hours ≈ {speedups/86400:.1f} days")
-    
-    if st.button("Calculate Maximum Trainable", type="primary"):
-        resources = {"food": food, "wood": wood, "stone": stone, "iron": iron}
-        result = calculate_max_trainable(str(tier), troop_type, resources, speedups)
+        resources = {
+            "food": food,
+            "wood": wood,
+            "stone": stone,
+            "iron": iron
+        }
         
-        if isinstance(result, str):
-            st.warning(result)
-        else:
-            max_trainable, limiting_factor, factors = result
-            
-            st.success(f"**Maximum Trainable Troops: {max_trainable:,}**")
-            st.info(f"**Limiting Factor: {limiting_factor.title()}**")
-            
-            # Show breakdown
-            st.subheader("Resource Breakdown")
-            breakdown_cols = st.columns(5)
-            factor_names = ["Food", "Wood", "Stone", "Iron", "Speedups"]
-            for i, (factor, name) in enumerate(zip(factors.keys(), factor_names)):
-                with breakdown_cols[i]:
-                    value = factors[factor]
-                    if value == float('inf'):
-                        st.metric(name, "∞")
-                    else:
-                        st.metric(name, f"{int(value):,}")
-
-elif page == "Troop Comparison":
-    st.header("⚖️ Troop Comparison")
-    
-    st.subheader("Compare Different Troop Types")
-    
-    # Create comparison table
-    comparison_data = []
-    for tier in range(1, 13):
-        tier_str = str(tier)
-        for troop_type in ["A", "I", "C", "V"]:
-            power = get_tier_power(tier_str)
-            capacity = get_tier_capacity(tier_str, troop_type)
-            
-            if tier != 12:
-                costs = get_tier_cost(tier_str, troop_type, 1)
-                comparison_data.append({
-                    "Tier": tier,
-                    "Type": {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicles"}[troop_type],
-                    "Power": power,
-                    "Capacity": capacity,
-                    "Food Cost": costs["food"],
-                    "Wood Cost": costs["wood"],
-                    "Stone Cost": costs["stone"],
-                    "Iron Cost": costs["iron"],
-                    "Power/Food": round(power/costs["food"], 3) if costs["food"] > 0 else "∞"
-                })
-            else:
-                comparison_data.append({
-                    "Tier": tier,
-                    "Type": {"A": "Archers", "I": "Infantry", "C": "Cavalry", "V": "Vehicles"}[troop_type],
-                    "Power": power,
-                    "Capacity": capacity,
-                    "Food Cost": "N/A",
-                    "Wood Cost": "N/A",
-                    "Stone Cost": "N/A",
-                    "Iron Cost": "N/A",
-                    "Power/Food": "N/A"
-                })
-    
-    df = pd.DataFrame(comparison_data)
-    
-    # Filters
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_tiers = st.multiselect("Select Tiers:", options=list(range(1, 13)), default=list(range(1, 6)))
-    with col2:
-        selected_types = st.multiselect("Select Types:", 
-                                       options=["Archers", "Infantry", "Cavalry", "Vehicles"], 
-                                       default=["Archers", "Infantry", "Cavalry", "Vehicles"])
-    
-    # Filter dataframe
-    filtered_df = df[
-        (df["Tier"].isin(selected_tiers)) & 
-        (df["Type"].isin(selected_types))
-    ]
-    
-    st.dataframe(filtered_df, use_container_width=True)
-    
-    # Charts
-    if not filtered_df.empty:
-        st.subheader("Power by Tier and Type")
-        chart_data = filtered_df.pivot(index="Tier", columns="Type", values="Power")
-        st.line_chart(chart_data)
+        max_trainable, limiting_factor = calculate_max_trainable(tier, troop_type, resources, total_speedup_time)
+        
+        st.success("✅ Maximum Trainable Calculation Complete!")
+        
+        col3, col4 = st.columns(2)
+        with col3:
+            st.metric("Maximum Trainable Troops", f"{max_trainable:,}")
+        with col4:
+            st.metric("Limiting Factor", limiting_factor.title())
+        
+        # Display speedup summary
+        st.subheader("Speed-up Summary:")
+        speedup_df = pd.DataFrame({
+            "Time Unit": ["Minutes", "Hours", "Days"],
+            "Total Available": [
+                rounder(round(total_speedup_time / 60)),
+                rounder(round(total_speedup_time / 3600)),
+                rounder(round(total_speedup_time / 86400))
+            ]
+        })
+        st.dataframe(speedup_df, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.markdown("**PaCMath Calculator** - Calculate your troop power and optimize your army! 🗡️")
+st.markdown("**PaCMath Troop Calculator** - Plan your army efficiently! 🎮")

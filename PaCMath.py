@@ -164,9 +164,9 @@ def get_max_troop_training():
         seven_d * 604800
     )
 
-    print(f"Total speedup time in minutes: {round(total_speedup_time / 60)}")
-    print(f"Total speedup time in hours: {round(total_speedup_time / 3600)}")
-    print(f"Total speedup time in days: {round(total_speedup_time / 86400)}")
+    print(f"Total speedup time in minutes: {rounder(round(total_speedup_time / 60))}")
+    print(f"Total speedup time in hours: {rounder(round(total_speedup_time / 3600))}")
+    print(f"Total speedup time in days: {rounder(round(total_speedup_time / 86400))}")
     resource_amount_food = input("Enter the amount of food you have in total: ")
     while not resource_amount_food.isdigit():  # Ensure the amount is a digit
         print("Invalid amount. Please enter a valid number.")
