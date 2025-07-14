@@ -2,7 +2,30 @@ import random
 
 dice_rollable = 1 # Dice that can be rolled
 dice_rolled = 0 # Dice that have been rolled
+dice_multiplier = 1 # Multiplier for the dice roll
+dice_crit_chance = 10 # Chance of a critical hit
+dice_crit_multiplier = 20 # Multiplier for a critical hit
 roll_hystory = [] # History of rolls
+dice_type = "d6" # Type of dice to roll, can be "d2", "d4", "d6", "d8", "d10", "d12", "d20", or "d100"
+dice_s = 6 # Number of sides on the dice, can be 2, 4, 6, 8, 10, 12, 20, or 100
+upgrade_cost = {
+    "d6": 5000, 
+    "d8": 15000, 
+    "d10": 50000, 
+    "d12": 250000, 
+    "d20": 1000000, 
+    "d100": 10000000
+}
+dice_types = ["d6", "d8", "d10", "d12", "d20", "d100"]
+dice_sides = {
+    "d6": 6,
+    "d8": 8,
+    "d10": 10,
+    "d12": 12,
+    "d20": 20,
+    "d100": 100
+}
+
 doin = 100 # Curency in the game
 
 def rounder(n): # Function to round numbers for better readability
@@ -24,10 +47,25 @@ def rounder(n): # Function to round numbers for better readability
         return str(round(n / 1000, 2)) + "k"
     else:
         return str(n)
+    
+def dice_ammount_upgrade_cost():
+    if dice_s == 6:
+        return 1000 * dice_rollable
+    elif dice_s == 8:
+        return 3000 * dice_rollable
+    elif dice_s == 10:
+        return 10000 * dice_rollable
+    elif dice_s == 12:
+        return 50000 * dice_rollable
+    elif dice_s == 20:
+        return 200000 * dice_rollable
+    elif dice_s == 100:
+        return 2000000 * dice_rollable
 
-def roll_dice(d_rollable, d_sides, d_multiplier, d_crit_chance, d_crit_multiplier):
+def roll_dice(d_rollable, d_type, d_multiplier, d_crit_chance, d_crit_multiplier, doin):
+    d_sides = dice_sides[d_type]
     roll = 0
-    r = 0
+
     for i in range(d_rollable):
         r = random.randint(1, d_sides)
         dis = rounder(r)
@@ -46,7 +84,59 @@ def roll_dice(d_rollable, d_sides, d_multiplier, d_crit_chance, d_crit_multiplie
         if random.random() < d_crit_chance / 100:
             print("You Rolled A Critical Hit!")
             roll *= d_crit_multiplier
-            roll = rounder(roll)
-            print(f"Your Roll Was Multiplied By {d_crit_multiplier} And Is Now {roll}")
+            ro = rounder(roll)
+            print(f"Your Roll Was Multiplied By {d_crit_multiplier} And Is Now {ro}")
+    doin += roll
+    print(f"You Now Have {rounder(doin)} Doins")
+    menu(doin)
 
-roll_dice(5, 6, 52, 50, 100)
+def menu(doin):
+    global dice_type, dice_s, dice_rollable, dice_multiplier, dice_crit_chance, dice_crit_multiplier
+    print("Welcome To The Dice Simulator!")
+    while True:
+        print("1. Roll Dice")
+        print(f"2. Upgrade Dice, Cost Is {rounder(upgrade_cost[dice_type])} Doins")
+        print(f"3. Upgrade Rollable Dice, Cost Is {rounder(dice_ammount_upgrade_cost())} Doins")
+        print("4. Exit")
+        choice = input("Enter your choice: ")
+        if choice == "1":
+            roll_dice(dice_rollable, dice_type, dice_multiplier, dice_crit_chance, dice_crit_multiplier, doin)
+        elif choice == "2":
+            if doin >= upgrade_cost[dice_type]:
+                doin -= upgrade_cost[dice_type]
+                if dice_type == "d6":
+                    dice_type = "d8"
+                    dice_s = 8
+                elif dice_type == "d8":
+                    dice_type = "d10"
+                    dice_s = 10
+                elif dice_type == "d10":
+                    dice_type = "d12"
+                    dice_s = 12
+                elif dice_type == "d12":
+                    dice_type = "d20"
+                    dice_s = 20
+                elif dice_type == "d20":
+                    dice_type = "d100"
+                    dice_s = 100
+                else:
+                    print("You Have Reached The Maximum Dice Type!")
+            else:
+                print(f"You Do Not Have Enough Doins To Upgrade Your Dice, You Need {rounder(upgrade_cost[dice_type])} Doins")
+            continue
+        elif choice == "3":
+            if doin > dice_ammount_upgrade_cost():
+                doin -= dice_ammount_upgrade_cost()
+                dice_rollable += 1
+                print(f"You Have Upgraded Your Rollable Dice To {dice_rollable} Dice")
+            else:
+                print(f"You Do Not Have Enough Doins To Upgrade Your Rollable Dice, You Need {rounder(dice_ammount_upgrade_cost())} Doins")
+            continue
+        elif choice == "4":
+            print("Thank you for using the Dice Simulator!")
+            exit()
+        else:
+            print("Invalid choice, please try again.")
+            continue
+
+menu(doin)
